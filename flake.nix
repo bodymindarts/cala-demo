@@ -41,6 +41,7 @@
           docker-compose
           bats
           jq
+          bacon
         ]
         ++ lib.optionals pkgs.stdenv.isDarwin [
           darwin.apple_sdk.frameworks.SystemConfiguration
@@ -53,6 +54,7 @@
         PGHOST = "127.0.0.1";
         DATABASE_URL = "postgres://${PGUSER}:${PGPASSWORD}@${PGHOST}:5432/pg";
         PG_CON = "${DATABASE_URL}";
+        SQLX_OFFLINE = true;
       };
     in
       with pkgs; {

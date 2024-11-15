@@ -8,14 +8,13 @@ pub async fn init(cala: &CalaLedger) -> anyhow::Result<()> {
         .name("MAIN JOURNAL")
         .build()?;
 
-    if let Ok(journal) = cala.journals().create(new_journal).await {
-        println!("CREATED Journal");
-        println!(
-            "{}",
-            serde_json::to_string(&journal.values()).expect("serde")
-        );
-        println!("DONE");
-    }
+    let journal = cala.journals().create(new_journal).await?;
+    println!("CREATED Journal");
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&journal.values()).expect("serde")
+    );
+    println!("DONE");
 
     Ok(())
 }

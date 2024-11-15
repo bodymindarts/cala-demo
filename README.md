@@ -68,7 +68,141 @@ let new_journal = NewJournal::builder()
     .description("the primary journal")
     .build()?;
 
-if let Ok(journal) = cala.journals().create(new_journal).await {
-  //
-}
+let journal = cala.journals().create(new_journal).await?;
+```
+
+```sh
+alias demo="cargo run --"
+demo create-journal
+```
+### Making a deposit
+
+In order to corretly record a deposit we need 2 accounts.
+One account represents the assets that the bank holds.
+The other account represents the liability it has towards a particular customer.
+
+DEPOSIT TRANSACTION
+| ENTRY        | ACCOUNT  | DEBIT | CREDIT |
+|--------------|---|---|---|
+| Entry 1      | ASSETS | 1000 | |
+| Entry 2      |CUSTOMER 1 | | 1000 |
+
+accounts.rs
+```rust
+pub const ASSETS_ACCOUNT_ID: uuid::Uuid = uuid::uuid!("00000000-0000-0000-0000-000000000000");
+let new_account = NewAccount::builder()
+    .id(ASSETS_ACCOUNT_ID)
+    .name("ASSETS")
+    .code("ASSETS")
+    .normal_balance_type(DebitOrCredit::Debit)
+    .build()?;
+cala.accounts().create(new_account).await?;
+```
+
+```sh
+demo create-assets-account
+demo create-account "Alice"
+```
+### Transaction templates
+In order to record a transaction in Cala we first need to create a template.
+In this case a 'deposit' template.
+
+```yaml
+code: "DEPOSIT"
+transaction:
+  journal_id: "params.journal_id"
+  effective: "date()"
+params:                         # Template inputs that will be interpolated into the transaction
+  - name: "assets"
+    type: "UUID"
+  - name: "recipient"
+    type: "UUID"
+  - name: "journal_id"
+    type: "UUID"
+  - name: "amount"
+    type: "DECIMAL"
+entries:
+  - entry_type: "DEPOSIT_DR"
+    account_id: "params.assets" # Extracting the injected sender account from params
+    layer: "SETTLED"            # Cala support 3 'layers': ENCUMBRANCE, PENDING, SETTLED
+    direction: "CREDIT"
+    units: "params.amount"
+    currency: "BTC"
+  - entry_type: "DEPOSIT_CR"
+    account_id: "params.recipient"
+    layer: "SETTLED"
+    direction: "DEBIT"
+    units: "params.amount"
+    currency: "BTC"
+```
+
+The template is shown here in yaml to make it more compact.
+In rust code it is a bit more verbose.
+
+Once the template is created we can execute it:
+```rust
+let recipient_account = cala.accounts().find_by_code(account_code).await?;
+let mut params = Params::new();
+params.insert("journal_id", super::journal::JOURNAL_ID);
+params.insert("assets", super::accounts::ASSETS_ACCOUNT_ID);
+params.insert("recipient", recipient_account.id());
+params.insert("amount", amount);
+
+let transaction = cala
+    .post_transaction(TransactionId::new(), "DEPOSIT", params)
+    .await?;
+```
+
+```sh
+demo deposit "Alice" 1000
+demo balance "Alice"
+demo balance "ASSETS"
+```
+
+### Transfer and Withdraw
+
+To transfer money from one account to another we need to create a new template.
+This template doesn't affect the assets account because we are only moving money between customers.
+
+TRANSFER TRANSACTION
+| ENTRY        | ACCOUNT  | DEBIT | CREDIT |
+|--------------|---|---|---|
+| Entry 1      | CUSTOMER 1 | 1000 | |
+| Entry 2      |CUSTOMER 2 | | 1000 |
+
+```yaml
+code: "TRANSFER"
+transaction:
+  journal_id: "params.journal_id"
+  effective: "date()"
+params:
+  - name: "recipient"
+    type: "UUID"
+  - name: "assets"
+    type: "UUID"
+  - name: "journal_id"
+    type: "UUID"
+  - name: "amount"
+    type: "DECIMAL"
+entries:
+  - entry_type: "TRANSFER_CR"
+    account_id: "params.sender"
+    layer: "SETTLED"
+    direction: "CREDIT"
+    units: "params.amount"
+    currency: "BTC"
+  - entry_type: "TRANSFER_DR"
+    account_id: "params.recipient"
+    layer: "SETTLED"
+    direction: "DEBIT"
+    units: "params.amount"
+    currency: "BTC"
+```
+
+```sh
+demo create-account "Bob"
+demo transfer "Alice" "Bob" 200
+demo balance "Alice"
+demo balance "Bob"
+demo balance "ASSETS"
 ```

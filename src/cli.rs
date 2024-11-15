@@ -6,14 +6,26 @@ use rust_decimal::Decimal;
 pub struct Cli {
     #[clap(subcommand)]
     pub command: Command,
-
-    #[clap(env = "PG_CON")]
-    pg_con: String,
 }
 
 #[derive(Subcommand)]
 pub enum Command {
+    CreateJournal,
     ListAccounts,
-    CreateAccount { name: String },
-    Deposit { name: String, amount: Decimal },
+    CreateAccount {
+        name: String,
+    },
+    CreateAssetsAccount,
+    Deposit {
+        name: String,
+        amount: Decimal,
+    },
+    Transfer {
+        sender: String,
+        recipient: String,
+        amount: Decimal,
+    },
+    Balance {
+        name: String,
+    },
 }

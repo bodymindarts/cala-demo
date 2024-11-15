@@ -77,7 +77,8 @@ demo help
 Lets setup the boilerplate to initialize the ledger, a journal and some accounts.
 
 Initialize the ledger:
-lib.rs
+
+[lib.rs](https://github.com/bodymindarts/cala-demo/blob/083e6a40016817a5ea44faa39b0a0490417bcfec/src/lib.rs#L19-L24)
 ```rust
 let pg_con = "postgres://user:password@localhost:5432/pg";
 let cala_config = CalaLedgerConfig::builder()
@@ -89,7 +90,8 @@ let cala = CalaLedger::init(cala_config).await?;
 ```
 
 Create the main journal:
-journals.rs
+
+[journals.rs](https://github.com/bodymindarts/cala-demo/blob/083e6a40016817a5ea44faa39b0a0490417bcfec/src/journal.rs#L6-L11)
 ```rust
 pub const JOURNAL_ID: uuid::Uuid = uuid::uuid!("00000000-0000-0000-0000-000000000000");
 
@@ -117,7 +119,7 @@ DEPOSIT TRANSACTION
 | Entry 1      | ASSETS | 1000 | |
 | Entry 2      |CUSTOMER 1 | | 1000 |
 
-accounts.rs
+(accounts.rs)[https://github.com/bodymindarts/cala-demo/blob/fabab98ffc89e5870a5ec3b5a56a912c38c0d5e1/src/accounts.rs#L36-L45]
 ```rust
 pub const ASSETS_ACCOUNT_ID: uuid::Uuid = uuid::uuid!("00000000-0000-0000-0000-000000000000");
 let new_account = NewAccount::builder()
@@ -170,6 +172,8 @@ The template is shown here in yaml to make it more compact.
 In rust code it is a bit more verbose.
 
 Once the template is created we can execute it:
+
+[deposit.rs](https://github.com/bodymindarts/cala-demo/blob/fabab98ffc89e5870a5ec3b5a56a912c38c0d5e1/src/deposit.rs#L70-L79)
 ```rust
 let recipient_account = cala.accounts().find_by_code(account_code).await?;
 let mut params = Params::new();

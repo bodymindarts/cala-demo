@@ -6,7 +6,7 @@ We are going to discuss:
 
 ## Accounting basics
 
-In accounting we record fanancial transactions in a ledger.
+In accounting we record financial transactions in a ledger.
 A ledger has (potentially multiple) journals.
 Journals are the things that hold the (ordered) history of transactions
 and the balances of the ledger accounts.
@@ -43,6 +43,16 @@ TRANSACTION 2
 The number of entries per transaction is variable.
 Accounts can show up multiple times in one transaction.
 As long as the whole transaction balances out, it is valid.
+
+
+In Cala entries actually have more information - including the currency and the layer as well as some metadata.
+ACTUALLY
+| ENTRY        | ACCOUNT  | DEBIT | CREDIT | CURRENCY | LAYER |
+|--------------|---|---|---|---|---|
+| Entry 1      |Account 1 | 25| | BTC | SETTLED |
+
+
+In Cala the `debit == credit` rule is extended and must hold for each currency and each layer (`ENCUMBRANCE`, `PENDING`, `SETTLED`).
 
 ## Code time
 

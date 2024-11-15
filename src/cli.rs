@@ -20,6 +20,10 @@ pub enum Command {
         name: String,
         amount: Decimal,
     },
+    Withdraw {
+        name: String,
+        amount: Decimal,
+    },
     Transfer {
         sender: String,
         recipient: String,
@@ -33,4 +37,9 @@ pub enum Command {
     AddLiabilitiesMember {
         name: String,
     },
+    InitOverdraft,
+    AttachOverdraftProtection {
+        name: String,
+    },
+    WatchEvents,
 }

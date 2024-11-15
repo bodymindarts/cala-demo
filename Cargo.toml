@@ -4,9 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-cala-ledger = "0.2.44"
+cala-ledger = "0.2.46"
 
 anyhow = "1.0.89"
+futures = "0.3.31"
 clap = { version = "4.5", features = ["derive", "env", "cargo"] }
 sqlx = { version = "0.8", features = [ "runtime-tokio-rustls", "postgres", "rust_decimal", "uuid", "chrono", "json" ] }
 tokio = { version = "1.40", features = ["rt-multi-thread", "macros"] }

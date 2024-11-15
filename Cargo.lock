@@ -454,9 +454,9 @@ checksum = "ade8366b8bd5ba243f0a58f036cc0ca8a2f069cff1a2351ef1cac6b083e16fc0"
 
 [[package]]
 name = "cala-cel-interpreter"
-version = "0.2.44"
+version = "0.2.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a82cb4666abbe0fadc8511e5a60b904d37ca9dacc7b65d1c06e962dbc8ed1374"
+checksum = "4ae26c5a9703f51123239c481761ec9bf4874e15c19304a73d329dc2fd0c772a"
 dependencies = [
  "cala-cel-parser",
  "chrono",
@@ -470,9 +470,9 @@ dependencies = [
 
 [[package]]
 name = "cala-cel-parser"
-version = "0.2.44"
+version = "0.2.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c087068e4c34ddc3160b1f3a021f2da36c7eaff893df5ababb7d0a724e45b3a"
+checksum = "bdd8aa3ad7f16a8c826d6c88096ffe3f51d2735271361c7cbe8bae0d53f1f392"
 dependencies = [
  "lalrpop",
  "lalrpop-util",
@@ -485,6 +485,7 @@ dependencies = [
  "anyhow",
  "cala-ledger",
  "clap",
+ "futures",
  "rust_decimal",
  "serde",
  "serde_json",
@@ -498,9 +499,9 @@ dependencies = [
 
 [[package]]
 name = "cala-ledger"
-version = "0.2.44"
+version = "0.2.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4462ce0593bca7885bbc4caea486fc2ce89303b435393705e0f0c6cd7123bf93"
+checksum = "06bf25e297ba8da4bed8f28fa0994d348e19e44d3a72cb4a8cac4b1ce6f00297"
 dependencies = [
  "cached",
  "cala-cel-interpreter",
@@ -530,9 +531,9 @@ dependencies = [
 
 [[package]]
 name = "cala-ledger-core-types"
-version = "0.2.44"
+version = "0.2.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e246bce7bf428886c00eabce22428513bb7794e6143819bbcf34522459518536"
+checksum = "6a70e8fede6e90ba52df904fca253bd3badaabef44993f66b5b3a06075d575ac"
 dependencies = [
  "cala-cel-interpreter",
  "chrono",
@@ -548,9 +549,9 @@ dependencies = [
 
 [[package]]
 name = "cala-tracing"
-version = "0.2.44"
+version = "0.2.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3c6b8b72066cbb2afbda17afaa8a91dabcc127ef59783adc904dcbcde5f3c66"
+checksum = "318220e4680b6a87ec4bbeff3444c37cf5501e993f88ebb87f8b7e29c3d5b826"
 dependencies = [
  "anyhow",
  "axum-extra",

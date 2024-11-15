@@ -8,6 +8,8 @@ mod cli;
 mod deposit;
 mod journal;
 mod transfer;
+mod velocity;
+mod withdrawal;
 
 use cala_ledger::{tx_template::NewTxTemplate, CalaLedger, CalaLedgerConfig};
 use clap::Parser;
@@ -25,6 +27,7 @@ pub async fn run() -> anyhow::Result<()> {
     let cala = CalaLedger::init(cala_config).await?;
 
     let _ = init_template(&cala, deposit::template()).await;
+    let _ = init_template(&cala, withdrawal::template()).await;
     let _ = init_template(&cala, transfer::template()).await;
 
     match cli.command {
@@ -42,6 +45,9 @@ pub async fn run() -> anyhow::Result<()> {
         }
         Command::Deposit { name, amount } => {
             deposit::execute(cala, name, amount).await?;
+        }
+        Command::Withdraw { name, amount } => {
+            withdrawal::execute(cala, name, amount).await?;
         }
         Command::Transfer {
             sender,
@@ -61,6 +67,23 @@ pub async fn run() -> anyhow::Result<()> {
         }
         Command::AddLiabilitiesMember { name } => {
             account_sets::add_member(cala, name).await?;
+        }
+        Command::InitOverdraft => {
+            velocity::init_overdraft_protection(cala).await?;
+        }
+        Command::AttachOverdraftProtection { name } => {
+            velocity::attach(cala, name).await?;
+        }
+        Command::WatchEvents => {
+            use cala_ledger::outbox::EventSequence;
+            use futures::StreamExt;
+
+            let mut stream = cala
+                .register_outbox_listener(Some(EventSequence::BEGIN))
+                .await?;
+            while let Some(event) = stream.next().await {
+                println!("{}", serde_json::to_string_pretty(&event).expect("serde"));
+            }
         }
     }
     Ok(())

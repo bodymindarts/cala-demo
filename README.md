@@ -1,5 +1,12 @@
 # Demo for using Cala Ledger rust library
 
+What is Cala?
+- A multi-currency, multi-layer, double sided bookkeeping ledger.
+- Can be embedded via Rust (+ language bindings)
+- Can run stand alone as a server
+- Persistence backed by postgres
+- Developed to scale and integrate well into a distributed system
+
 We are going to discuss:
 - some accounting basics
 - how to implement a simple example in Rust
@@ -288,3 +295,182 @@ demo add-liabilities-member "Bob"
 demo liabilities-balance
 demo transfer "Bob" "Alice" 100
 ```
+
+### Withdrawal
+
+What about withdrawing from the bank?
+
+WITHDRAW TRANSACTION
+| ENTRY        | ACCOUNT  | DEBIT | CREDIT |
+|--------------|---|---|---|
+| Entry 1      |CUSTOMER 1 | 1000 | |
+| Entry 2      | ASSETS | | 1000 |
+
+```yaml
+code: "WITHDRAWAL"
+transaction:
+  journal_id: "params.journal_id"
+  effective: "date()"
+params:
+  - name: "recipient"
+    type: "UUID"
+  - name: "assets"
+    type: "UUID"
+  - name: "journal_id"
+    type: "UUID"
+  - name: "amount"
+    type: "DECIMAL"
+entries:
+  - entry_type: "WITHDRAWAL_DR"
+    account_id: "params.sender"
+    layer: "SETTLED"
+    direction: "DEBIT"
+    units: "params.amount"
+    currency: "BTC"
+  - entry_type: "WITHDRAWAL_CR"
+    account_id: "params.assets"
+    layer: "SETTLED"
+    direction: "CREDIT"
+    units: "params.amount"
+    currency: "BTC"
+```
+
+If we are not careful balances can turn negative:
+```sh
+demo balance "Alice"
+demo withdraw "Alice" 1000
+demo balance "Alice"
+```
+
+## Atomic operations
+If multiple operations need to take place atomically we can create an `AtomicOperation`.
+It is a wrapper around an `sqlx::Transaction` that represents a Postgres transaction.
+[sqlx](https://github.com/launchbadge/sqlx) is the library we are using to talk to PG.
+
+```rust
+let mut op = cala.begin_operation().await?;
+let account = cala.accounts().create_in_op(&mut op, new_account).await?;
+let transaction = cala
+    .post_transaction_in_op(&mut op, TransactionId::new(), "DEPOSIT", params)
+    .await?;
+
+let db_transaction = op.tx(); # Underlying sqlx::Transaction
+op.commit().await?;
+```
+
+## Velocity Limits and Controls
+
+Velocity limits can be used to make restrictions on when an account is allowed to be debited (or credited).
+
+Example velocity limit:
+[velocity.rs](https://github.com/bodymindarts/cala-demo/blob/47e793d15a7ddf7ac8c5d866211382e9f3f43ac0/src/velocity.rs#L8-L25)
+```yaml
+name: "Overdraft Protection"
+description: "Limit to prevent an account going negative"
+window: []    # Used to scope a limit to a into a bucket
+# - { alias: "value", value: "context.vars.transaction.meta.value" }
+params: []
+condition: "" # CEL expression to encode wether or not to enforce
+# condition: "context.vars.transaction.meta.enforceLimit"
+limit:
+  balance:
+  - layer: "SETTLED"
+    amount: "decimal('0')" # CEL expression to define the limit
+    enforcement_direction: "DEBIT"
+```
+
+Velocity controls are used to group multiple limits together.
+They can be attached to accounts.
+
+Example velocity control:
+
+[velocity.rs](https://github.com/bodymindarts/cala-demo/blob/47e793d15a7ddf7ac8c5d866211382e9f3f43ac0/src/velocity.rs#L32-L45)
+```rust
+let control = NewVelocityControl::builder()
+    .id(ACCOUNT_CONTROL_ID)
+    .name("Customer Account Control")
+    .description("Constrains movements of funds on customer accoutns")
+    .build()
+    .expect("build control");
+let control = cala
+    .velocities()
+    .create_control_in_op(&mut op, control)
+    .await?;
+cala.velocities()
+    .add_limit_to_control_in_op(&mut op, control.id(), limit.id())
+    .await?;
+```
+
+```sh
+demo init-overdraft
+demo attach-overdraft-protection "Alice"
+demo deposit "Alice" 100
+demo withdraw "Alice" 1000
+```
+
+## Outbox
+
+How to trigger down stream effects from Cala?
+
+The `Outbox` is a mechanism to listen to events comming from Cala.
+
+[lib.rs](https://github.com/bodymindarts/cala-demo/blob/4e95bea9623d05af71a6094ad674557c478674e4/src/lib.rs#L78-L86)
+```rust
+use cala_ledger::outbox::EventSequence;
+use futures::StreamExt;
+
+let mut stream = cala
+    .register_outbox_listener(Some(EventSequence::BEGIN))
+    .await?;
+while let Some(event) = stream.next().await {
+    println!("{}", serde_json::to_string_pretty(&event).expect("serde"));
+}
+
+Example event:
+```json
+{
+  "id": "8c62ef8e-5cd9-48c7-954d-25fb53171d1d",
+  "sequence": 4,
+  "payload": {
+    "type": "account_created",
+    "source": {
+      "type": "local"
+    },
+    "account": {
+      "id": "00000000-0000-0000-0000-000000000000",
+      "version": 1,
+      "code": "ASSETS",
+      "name": "ASSETS",
+      "normal_balance_type": "debit",
+      "status": "active",
+      "external_id": null,
+      "description": null,
+      "metadata": null,
+      "config": {
+        "is_account_set": false,
+        "eventually_consistent": false
+      }
+    }
+  },
+  "recorded_at": "2024-11-15T14:37:31.747358Z"
+}
+```
+```sh
+demo watch-events
+```
+The exposed sequence number makes it possible to garuantee 'effectively once' processing.
+
+To keep external systems in sync the Outbox can also be exposed via a GRPC server:
+```rust
+let cala_config = CalaLedgerConfig::builder()
+    .pg_con(pg_con)
+    .exec_migrations(true)
+    .outbox(OutboxServerConfig::default()) # <- expose the outbox server
+    .build()?;
+```
+
+[Protobuf](https://github.com/GaloyMoney/cala/blob/main/proto/ledger/outbox_service.proto)
+
+## Cala server
+
+All functionality of the library is also exposed via a [GraphQL server](https://github.com/GaloyMoney/cala/blob/main/cala-server/schema.graphql).

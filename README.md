@@ -54,8 +54,19 @@ ACTUALLY
 
 In Cala the `debit == credit` rule is extended and must hold for each currency and each layer (`ENCUMBRANCE`, `PENDING`, `SETTLED`).
 
-## Code time
+## Demo setup
 
+Using the following command we can setup an environment.
+
+```sh
+git clone git@github.com:bodymindarts/cala-demo.git
+cd cala-demo
+direnv reload           # downloads the dependencies via nix
+docker compose up -d    # starts the postgres container
+tree src
+```
+
+## Code time
 Lets setup the boilerplate to initialize the ledger, a journal and some accounts.
 
 lib.rs

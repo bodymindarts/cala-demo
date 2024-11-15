@@ -63,12 +63,20 @@ git clone git@github.com:bodymindarts/cala-demo.git
 cd cala-demo
 direnv reload           # downloads the dependencies via nix
 docker compose up -d    # starts the postgres container
-tree src
 ```
 
 ## Code time
+Overview of the code
+
+```sh
+tree src
+alias demo="cargo run --"
+demo help
+```
+
 Lets setup the boilerplate to initialize the ledger, a journal and some accounts.
 
+Initialize the ledger:
 lib.rs
 ```rust
 let pg_con = "postgres://user:password@localhost:5432/pg";
@@ -79,6 +87,8 @@ let cala_config = CalaLedgerConfig::builder()
 let cala = CalaLedger::init(cala_config).await?;
 // ... //
 ```
+
+Create the main journal:
 journals.rs
 ```rust
 pub const JOURNAL_ID: uuid::Uuid = uuid::uuid!("00000000-0000-0000-0000-000000000000");
@@ -93,7 +103,6 @@ let journal = cala.journals().create(new_journal).await?;
 ```
 
 ```sh
-alias demo="cargo run --"
 demo create-journal
 ```
 ### Making a deposit

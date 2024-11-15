@@ -1,4 +1,5 @@
-use clap::{Subcommand,Parser};
+use clap::{Parser, Subcommand};
+use rust_decimal::Decimal;
 
 #[derive(Parser)]
 #[clap(long_about = None)]
@@ -10,8 +11,9 @@ pub struct Cli {
     pg_con: String,
 }
 
-
 #[derive(Subcommand)]
 pub enum Command {
-    ListAccounts
+    ListAccounts,
+    CreateAccount { name: String },
+    Deposit { name: String, amount: Decimal },
 }

@@ -1,6 +1,7 @@
 #![allow(unused_imports)]
 #![allow(dead_code)]
 
+mod account_sets;
 mod accounts;
 mod balance;
 mod cli;
@@ -51,6 +52,15 @@ pub async fn run() -> anyhow::Result<()> {
         }
         Command::Balance { name } => {
             balance::fetch(cala, name).await?;
+        }
+        Command::CreateLiabilitiesAccountSet => {
+            account_sets::create(cala).await?;
+        }
+        Command::LiabilitiesBalance => {
+            balance::fetch_liabilities(cala).await?;
+        }
+        Command::AddLiabilitiesMember { name } => {
+            account_sets::add_member(cala, name).await?;
         }
     }
     Ok(())

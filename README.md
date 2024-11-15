@@ -119,7 +119,7 @@ DEPOSIT TRANSACTION
 | Entry 1      | ASSETS | 1000 | |
 | Entry 2      |CUSTOMER 1 | | 1000 |
 
-(accounts.rs)[https://github.com/bodymindarts/cala-demo/blob/fabab98ffc89e5870a5ec3b5a56a912c38c0d5e1/src/accounts.rs#L36-L45]
+[accounts.rs](https://github.com/bodymindarts/cala-demo/blob/fabab98ffc89e5870a5ec3b5a56a912c38c0d5e1/src/accounts.rs#L36-L45)
 ```rust
 pub const ASSETS_ACCOUNT_ID: uuid::Uuid = uuid::uuid!("00000000-0000-0000-0000-000000000000");
 let new_account = NewAccount::builder()
@@ -137,7 +137,10 @@ demo create-account "Alice"
 ```
 ### Transaction templates
 In order to record a transaction in Cala we first need to create a template.
-In this case a 'deposit' template.
+Templates are used to define the structure of a transaction.
+Params can be injected and referenced via [CEL](https://cel.dev).
+
+Here we have a template that represents deposits.
 
 ```yaml
 code: "DEPOSIT"
@@ -155,7 +158,7 @@ params:                         # Template inputs that will be interpolated into
     type: "DECIMAL"
 entries:
   - entry_type: "DEPOSIT_DR"
-    account_id: "params.assets" # Extracting the injected sender account from params
+    account_id: "params.assets" # Extracting the injected sender from params via CEL
     layer: "SETTLED"            # Cala support 3 'layers': ENCUMBRANCE, PENDING, SETTLED
     direction: "CREDIT"
     units: "params.amount"
@@ -193,7 +196,7 @@ demo balance "Alice"
 demo balance "ASSETS"
 ```
 
-### Transfer and Withdraw
+### Transfer
 
 To transfer money from one account to another we need to create a new template.
 This template doesn't affect the assets account because we are only moving money between customers.
@@ -233,10 +236,55 @@ entries:
     currency: "BTC"
 ```
 
+[Template definition](https://github.com/bodymindarts/cala-demo/blob/c3d5bafc17404bec4fc08e8f73adeb981458b57d/src/transfer.rs#L4)
+
 ```sh
 demo create-account "Bob"
 demo transfer "Alice" "Bob" 200
 demo balance "Alice"
 demo balance "Bob"
 demo balance "ASSETS"
+```
+
+### Account Sets
+
+Account sets are used to keep track of balances of multiple accounts.
+
+For example if I want to know how much money the bank owes in total to all of its customers I can create a 'Liabilities' account set to keep track of that.
+
+[account_sets.rs](https://github.com/bodymindarts/cala-demo/blob/abb4d10af7434f81ec06fc064a73cace2c2ed3e7/src/account_sets.rs#L6-L13)
+```rust
+pub const LIABILITIES_ACCOUNT_SET_ID: uuid::Uuid =
+    uuid::uuid!("00000000-0000-0000-0000-000000000000");
+
+let new_set = NewAccountSet::builder()
+    .id(LIABILITIES_ACCOUNT_SET_ID)
+    .name("LIABILITIES")
+    .journal_id(super::journal::JOURNAL_ID) # Account sets are scoped to journals
+    .build()
+    .unwrap();
+
+let account_set = cala.account_sets().create(new_set).await?;
+```
+
+```sh
+demo create-account-set
+```
+
+In order for the Account Set to be useful we need to add some accounts to it.
+
+[account_sets.rs](https://github.com/bodymindarts/cala-demo/blob/abb4d10af7434f81ec06fc064a73cace2c2ed3e7/src/account_sets.rs#L25-L28)
+```rust
+let member = cala.accounts().find_by_code(name).await?;
+cala.account_sets()
+    .add_member(LIABILITIES_ACCOUNT_SET_ID.into(), member.id())
+    .await?;
+```
+
+```sh
+demo add-liabilities-member "Alice"
+demo liabilities-balance
+demo add-liabilities-member "Bob"
+demo liabilities-balance
+demo transfer "Bob" "Alice" 100
 ```

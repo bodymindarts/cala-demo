@@ -20,3 +20,23 @@ pub async fn fetch(cala: CalaLedger, account_code: String) -> anyhow::Result<()>
 
     Ok(())
 }
+
+pub async fn fetch_liabilities(cala: CalaLedger) -> anyhow::Result<()> {
+    let balance = cala
+        .balances()
+        .find(
+            super::journal::JOURNAL_ID.into(),
+            super::account_sets::LIABILITIES_ACCOUNT_SET_ID,
+            "BTC".parse().unwrap(),
+        )
+        .await?;
+    println!("LIABILITIES BALANCE");
+    println!("Settled Balance: {}", balance.settled());
+    println!("DETAILS");
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&balance.details).expect("serde")
+    );
+
+    Ok(())
+}

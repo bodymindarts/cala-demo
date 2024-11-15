@@ -28,4 +28,9 @@ pub enum Command {
     Balance {
         name: String,
     },
+    CreateLiabilitiesAccountSet,
+    LiabilitiesBalance,
+    AddLiabilitiesMember {
+        name: String,
+    },
 }
